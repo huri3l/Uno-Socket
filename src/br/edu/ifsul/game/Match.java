@@ -284,12 +284,8 @@ public class Match {
      * @since 1.0
      */
     public void distributePlayersCards() {
-        for(Player player : players) {
-            Card selectedCard = deck.remove(0);
-
-            player.addCard(selectedCard);
-            
-//            Deck.dealCards(deck, player);    
+        for(Player player : players) {           
+            Deck.dealCards(deck, player);    
         }
     }
     

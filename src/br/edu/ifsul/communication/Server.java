@@ -133,13 +133,8 @@ public class Server extends Thread {
                 match.restart(player);
             }
             
-
             match.setMatchStarted(true);
             match.getPlayers().get(0).setCanPlay(true);
-            
-            match.getPlayers().get(0).setPoints(90);
-            match.getPlayers().get(0).getCards().clear();
-            match.getPlayers().get(0).addCard(new Card(CardColor.JOKER, CardValue.DRAW_FOUR));
         }
     }
     
