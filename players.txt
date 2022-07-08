@@ -1,0 +1,4 @@
+Nome: Tetste | Vitorias: 100 | Empates: 0 | Derrotas: 0 | Ranking: 1 | Pontuacao na ultima partida: 0
+Nome: Joao | Vitorias: 27 | Empates: 0 | Derrotas: 0 | Ranking: 2 | Pontuacao na ultima partida: 0
+Nome: Case | Vitorias: 15 | Empates: 0 | Derrotas: 0 | Ranking: 3 | Pontuacao na ultima partida: 0
+Nome: Jovita | Vitorias: 14 | Empates: 0 | Derrotas: 0 | Ranking: 4 | Pontuacao na ultima partida: 0
