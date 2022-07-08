@@ -65,7 +65,7 @@ public class Client extends Thread {
         handleConnection();
     }
     
-    /**|
+    /**
      * This method is meant to handle user's connection, setting when its
      * connected or not.
      *
@@ -89,7 +89,7 @@ public class Client extends Thread {
                 System.out.println(line);
             }
         } catch (IOException e) {
-            System.out.println("IOException: " + e);
+            System.out.println("O servidor foi fechado. Desconectando...");
         }
         done = true;
     }

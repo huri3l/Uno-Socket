@@ -52,7 +52,8 @@ public class Match {
         resetUsedCards();
         
         sendMessageToOtherPlayers(newPlayer, 
-                "Um novo jogador entrou! A partida sera reiniciada.");
+                "Um novo jogador entrou! A partida sera reiniciada. Pressione "
+                        + "ENTER para ver os status da nova partida.");
         
         start(true);
     }
@@ -71,14 +72,18 @@ public class Match {
             if (player.equals(winner))
                 SaveData.updatePlayerInfo(winner, true, false, false);
             else
-                SaveData.updatePlayerInfo(winner, false, false, true);
+                SaveData.updatePlayerInfo(player, false, false, true);
 
             if (chat != winner.getOutput()) {
                 chat.println(player.getName() + " venceu a partida!");
+                chat.println("Iniciando uma nova partida...");
             }
         }
         
-        winner.getOutput().println("Parabens!! Voce venceu a partida!");
+        SaveData.handleRanking();
+        
+        winner.getOutput().println("Parabens!! Voce venceu a partida! "
+                + "Vamos iniciar uma nova partida para voce e os demais jogadores");
     }
     
     /**
@@ -94,6 +99,7 @@ public class Match {
         lastCardInTable = Deck.flipFirstCard(deck, usedCards);
         
         if(restart) {
+            resetAllPlayersCards();
             distributePlayersCards();
         }
     }
@@ -126,7 +132,14 @@ public class Match {
                 SaveData.updatePlayerInfo(roundWinner, false, false, false);
             }
             
-            startRound(false);
+            for(Player player : players) {
+                player.getOutput().println("O jogador " + roundWinner.getName()
+                        + " venceu o round! Reiniciando as cartas para jogar..."
+                        + "\nPressione ENTER para ver suas opcoes e o status"
+                        + " atualizado da partida.");
+            }
+            
+            startRound(true);
         }
     }
     
@@ -146,16 +159,33 @@ public class Match {
         if (players.size() > 1) {
             for (Player currentPlayer : players) {
                 if (!currentPlayer.equals(player)) {
-                    output.println(currentPlayer.getName() + " tem: " + "\n  - "
-                            + currentPlayer.getPoints() + " pontos;" + "\n  - "
+                    String playerName = currentPlayer.getName();
+                    
+                    if(playerName == null)
+                        playerName = "Jogador nao identificado";
+                    
+                    output.println(playerName + ": " + "\n  - "
+                            + currentPlayer.getPoints() + " pontos." + "\n  - "
                             + currentPlayer.getCards().size() + " cartas.");
+                    
+                    if(currentPlayer.getIsBlocked())
+                        output.println(" - Esta bloqueado.");
+                    
+                    if(currentPlayer.getCanPlay())
+                        output.println(" - E o jogador da vez.");
                 }
             }
 
-            output.println("Voce tem: " + "\n  - "
-                    + player.getPoints() + " pontos;" + "\n  - "
+            output.println("Voce: " + "\n  - "
+                    + player.getPoints() + " pontos." + "\n  - "
                     + player.getCards().size() + " cartas.");
 
+            if(player.getIsBlocked())
+                output.println(" - Esta bloqueado.");
+            
+            if(player.getCanPlay())
+                output.println(" - E o jogador da vez.");
+            
             output.println("Carta na mesa: "
                     + showLastCardInTable());
 
@@ -203,6 +233,12 @@ public class Match {
                         currentPlayer.setCanPlay(false);
                         getNextPlayer(currentPlayer).setCanPlay(true);
                         
+                        getNextPlayer(currentPlayer).getOutput().println(
+                                "O jogador " + currentPlayer.getName()
+                                + " pescou, entao e sua vez de jogar."
+                                + " Pressione ENTER para ver suas opcoes"
+                                + " e o status atualizado da partida.");
+                        
                         return;
                     }
                     
@@ -211,16 +247,19 @@ public class Match {
                         
                         if (cardIndex > currentPlayer.getCards().size()) {
                             currentPlayer.getOutput().println(
-                                    "Nao foi possível identificar a "
-                                    + "carta escolhida! Tente novamente.");
+                                    "Nao foi possivel identificar a"
+                                    + " carta escolhida! Tente novamente.");
                             return;
                         }
 
                         selectedCard = currentPlayer.getCards().get(cardIndex);
                         break;
                     } catch (NumberFormatException e) {
-                        currentPlayer.getOutput().println("Nao foi possível "
-                                + "identificar a carta escolhida! Tente novamente.");
+                        if (!userOption.equals("")) {
+                            currentPlayer.getOutput().println("Nao foi possivel"
+                                    + " identificar a carta escolhida!"
+                                    + " Tente novamente.");
+                        }
                     }
                 }
             }
@@ -246,7 +285,11 @@ public class Match {
      */
     public void distributePlayersCards() {
         for(Player player : players) {
-            Deck.dealCards(deck, player);    
+            Card selectedCard = deck.remove(0);
+
+            player.addCard(selectedCard);
+            
+//            Deck.dealCards(deck, player);    
         }
     }
     
@@ -285,15 +328,13 @@ public class Match {
     public void playCard(Player currentPlayer, Card card) {
         if(!playerCanPlay(currentPlayer)) return;
         
-        handlePlayerDraws(currentPlayer);
-        
         if(!cardCanBePlayed(card)) {
             String userOption = "";
             
             while(!userOption.equals("0") && !userOption.equals("1")) {
                 currentPlayer.getOutput().println("Sua carta nao pode ser jogada!"
                         + " Deseja tentar outra ou pescar?\n"
-                        + "0 - Tentar outra carta\n"
+                        + "0 - Voltar (tentar outra carta)\n"
                         + "1 - Pescar\n"
                         + "Sua escolha: ");
                 
@@ -312,6 +353,12 @@ public class Match {
                             currentPlayer.draw(deck);
                             currentPlayer.setCanPlay(false);
                             getNextPlayer(currentPlayer).setCanPlay(true);
+                            
+                            getNextPlayer(currentPlayer).getOutput().println(
+                                    "O jogador " + currentPlayer.getName() +
+                                    " pescou, entao e sua vez de jogar." + 
+                                    " Pressione ENTER para ver suas opcoes" + 
+                                    " e o status atualizado da partida.");
                             break;
                         default:
                             currentPlayer.getOutput().println("Opcao invalida!");
@@ -332,59 +379,96 @@ public class Match {
         switch (droppedCard.getValue()) {
             case BLOCK: {
                 Player nextPlayer = getNextPlayer(currentPlayer);
-                nextPlayer.setIsBlocked(true);
+                Player nextAfterBlock = getNextPlayer(nextPlayer);
+                
                 nextPlayer.getOutput().println("Voce foi bloqueado pelo jogador "
                         + currentPlayer.getName() + ". Devido a isso, ficara"
                         + " uma rodada sem jogar.");
+                
+                nextAfterBlock.getOutput().println("O jogador anterior foi"
+                       + " bloqueado, entao e sua vez de jogar! Pressione ENTER"
+                       + " para ver suas opcoes e o status atualizado da partida.");
+                
+                nextPlayer.setIsBlocked(true);
+                nextPlayer.setCanPlay(false);
+                nextAfterBlock.setCanPlay(true);
+                
                 break;
             }
             case CHANGE_COLOR: {
+                Player nextPlayer = getNextPlayer(currentPlayer);
                 setJokerCardColor(currentPlayer);
                 
                 String message = "O jogador " + currentPlayer.getName() + " trocou"
                         + " a cor da mesa para " 
                         + Translation.getColor(droppedCard.getColor()) + "!";
                 sendMessageToOtherPlayers(currentPlayer, message);
+                
+                nextPlayer.setCanPlay(true);
                 break;
             }
             case DRAW_FOUR: {
                 Player nextPlayer = getNextPlayer(currentPlayer);
-                nextPlayer.setDrawFour(true);
+                
+                setJokerCardColor(currentPlayer);
+
+                String message = "O jogador " + currentPlayer.getName() + " trocou"
+                        + " a cor da mesa para "
+                        + Translation.getColor(droppedCard.getColor()) + "!";
+                sendMessageToOtherPlayers(currentPlayer, message);
+                
                 nextPlayer.getOutput().println("O jogador " + currentPlayer.getName()
                         + " jogou um Mais Quatro para voce. Devido a isso, quatro "
                         + "cartas serao adicionadas a sua mao.");
+                nextPlayer.drawFour(deck);
+                
+                nextPlayer.setCanPlay(true);
                 break;
             }
             case DRAW_TWO: {
                 Player nextPlayer = getNextPlayer(currentPlayer);
-                nextPlayer.setDrawTwo(true);
                 nextPlayer.getOutput().println("O jogador " + currentPlayer.getName()
                         + " jogou um Mais Dois para voce. Devido a isso, duas "
                         + "cartas serao adicionadas a sua mao.");
+                nextPlayer.drawTwo(deck);
+                
+                nextPlayer.setCanPlay(true);
                 break;
             }
             case REVERSE: {
                 Collections.reverse(players);
+                Player nextPlayer = getNextPlayer(currentPlayer);
                 
                 String message = "O jogador " + currentPlayer.getName() + " trocou"
                         + " a ordem da mesa!";
                 sendMessageToOtherPlayers(currentPlayer, message);
+                
+                nextPlayer.setCanPlay(true);
                 break;
             }
-            default:
+            default: {
+                Player nextPlayer = getNextPlayer(currentPlayer);
+                
+                nextPlayer.setCanPlay(true);
                 break;
+            }
         }
         
         currentPlayer.setCanPlay(false);
-        getNextPlayer(currentPlayer).setCanPlay(true);
-        getNextPlayer(currentPlayer).getOutput().println("E sua vez de jogar!"
-                + " Pressione ENTER para ver suas opcoes de jogo.");
+        
+        if(!getNextPlayer(currentPlayer).getIsBlocked()) {
+            getNextPlayer(currentPlayer).getOutput().println("E sua vez de "
+                    + "jogar! Pressione ENTER para ver suas opcoes de jogo"
+                    + " e o status atualizado da partida.");
+        }
     }
     
     /**
      * This method sends a message to all users about the new card in table.
      *
      * @author Huriel Ferreira Lopes
+     * @param currentPlayer the player playing a card
+     * @param card the card played
      * @since 1.0
      */
     public void notifyNewCardInTable(Player currentPlayer, Card card) {
@@ -392,23 +476,6 @@ public class Match {
                 + " a carta " + Translation.getCardName(card) + "!";
         
         sendMessageToOtherPlayers(currentPlayer, message);
-    }
-    
-    /**
-     * This method handles a player draws flags.
-     *
-     * @author Huriel Ferreira Lopes
-     * @param currentPlayer the player to be verified
-     * @since 1.0
-     */
-    public void handlePlayerDraws(Player currentPlayer) {
-        if(currentPlayer.getDrawFour()) {
-            currentPlayer.drawFour(deck);
-            currentPlayer.setDrawFour(false);
-        } else if(currentPlayer.getDrawTwo()) {
-            currentPlayer.drawTwo(deck);
-            currentPlayer.setDrawTwo(false);
-        }
     }
     
     /**
@@ -434,6 +501,7 @@ public class Match {
      *
      * @author Huriel Ferreira Lopes
      * @param currentPlayer the current player playing
+     * @return the next player in the current order
      * @since 1.0
      */
     public Player getNextPlayer(Player currentPlayer) {
@@ -468,23 +536,25 @@ public class Match {
                 input = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream()));
                 
                 userChoice = input.readLine();
-                if(userChoice != null) userChoice = userChoice.trim();
-
-                switch (userChoice) {
-                    case "1":
-                        lastCardInTable.setColor(CardColor.YELLOW);
-                        break;
-                    case "2":
-                        lastCardInTable.setColor(CardColor.BLUE);
-                        break;
-                    case "3":
-                        lastCardInTable.setColor(CardColor.GREEN);
-                        break;
-                    case "4":
-                        lastCardInTable.setColor(CardColor.RED);
-                        break;
-                    default:
-                        player.getOutput().println("A opcao selecionada e invalida! Tente novamente.");
+                if(userChoice != null) {
+                    userChoice = userChoice.trim();
+                
+                    switch (userChoice) {
+                        case "1":
+                            lastCardInTable.setColor(CardColor.YELLOW);
+                            break;
+                        case "2":
+                            lastCardInTable.setColor(CardColor.BLUE);
+                            break;
+                        case "3":
+                            lastCardInTable.setColor(CardColor.GREEN);
+                            break;
+                        case "4":
+                            lastCardInTable.setColor(CardColor.RED);
+                            break;
+                        default:
+                            player.getOutput().println("A opcao selecionada e invalida! Tente novamente.");
+                    }
                 }
             } catch (IOException ex) {
                 player.getOutput().println("Houve um erro ao ler a opcao selecionada.");
@@ -501,18 +571,17 @@ public class Match {
      * @since 1.0
      */
     public boolean playerCanPlay(Player currentPlayer) {
-        if (currentPlayer.getIsBlocked()) {
+        if (currentPlayer.getIsBlocked()) {  
             currentPlayer.setIsBlocked(false);
             currentPlayer.setCanPlay(false);
-            getNextPlayer(currentPlayer).setCanPlay(true);
             
-            currentPlayer.getOutput().println("Voce foi bloqueado em outra rodada "
-                    + "e nao pode jogar, por favor, aguarde.");
+            currentPlayer.getOutput().println("\nVoce foi bloqueado em "
+                    + "outra rodada e nao pode jogar, por favor, aguarde.\n");
             
             return false;
         } else if(!currentPlayer.getCanPlay()) {
-            currentPlayer.getOutput().println("Ainda nao e sua vez de jogar, "
-                    + "por favor, aguarde.");
+            currentPlayer.getOutput().println("\nAinda nao e sua vez de jogar, "
+                    + "por favor, aguarde.\n");
             return false;
         }
 

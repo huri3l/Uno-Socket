@@ -23,7 +23,7 @@ public class Translation {
         
         switch (card.getValue()) {
             case BLOCK:
-                sb.append("Pular");
+                sb.append("Bloquear");
                 break;
             case CHANGE_COLOR:
                 sb.append("Troca Cor");
@@ -69,10 +69,6 @@ public class Translation {
                 break;
             default:
                 break;
-        }
-        
-        if(card.getValue().equals(CardValue.DRAW_FOUR)) {
-            return sb.toString();
         }
         
         switch (card.getColor()) {

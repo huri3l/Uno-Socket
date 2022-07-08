@@ -2,6 +2,9 @@ package br.edu.ifsul.communication;
 
 import br.edu.ifsul.game.Match;
 import br.edu.ifsul.game.Player;
+import br.edu.ifsul.model.Card;
+import br.edu.ifsul.model.CardColor;
+import br.edu.ifsul.model.CardValue;
 import br.edu.ifsul.util.SaveData;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -86,6 +89,7 @@ public class Server extends Thread {
      * @param output is the PrintStream of the player that has made an action
      * @param action a String with the action that the player has made
      * @param line a String with a better description of the player's action
+     * @throws java.io.IOException if can't get player's output
      * @since 1.0
      */
     public void sendToOthers(PrintStream output, String action, String line) throws IOException {
@@ -114,10 +118,10 @@ public class Server extends Thread {
         player.setId(connection.getRemoteSocketAddress().toString());
         player.setIp(connection.getRemoteSocketAddress().toString());
         player.setSocket(connection);
-
+        
         match.addPlayer(player);
-        players.add(player);
-
+        players.add(player); 
+        
         System.out.println("O jogador com IP '"
                 + connection.getRemoteSocketAddress() + "' se conectou!: ");
 
@@ -128,9 +132,14 @@ public class Server extends Thread {
             if (match.getMatchStarted()) {
                 match.restart(player);
             }
+            
 
             match.setMatchStarted(true);
             match.getPlayers().get(0).setCanPlay(true);
+            
+            match.getPlayers().get(0).setPoints(90);
+            match.getPlayers().get(0).getCards().clear();
+            match.getPlayers().get(0).addCard(new Card(CardColor.JOKER, CardValue.DRAW_FOUR));
         }
     }
     
@@ -231,12 +240,22 @@ public class Server extends Thread {
                         match.endRound(player);
                     }
                     break;
-                case "2":
-                    player.callUno(match.getPlayers());
+                case "2": {
+                    String message = player.callUno(match.getPlayers());
+
+                    if (!message.equals(""))
+                        player.getOutput().println(message);
+
                     break;
-                case "3":
-                    player.counterUno(match.getPlayers(), match.getDeck());
+                }
+                case "3": {
+                    String message = player.counterUno(match.getPlayers(), match.getDeck());
+                    
+                    if (!message.equals(""))
+                        player.getOutput().println(message);
+                        
                     break;
+                }
                 default:
                     output.println("Opcao invalida! Tente novamente.");
                     break;

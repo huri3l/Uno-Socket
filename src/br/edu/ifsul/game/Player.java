@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package br.edu.ifsul.game;
 
 import br.edu.ifsul.model.Card;
@@ -26,9 +22,6 @@ public class Player implements Serializable {
     
     private List<Card> cards = new ArrayList<>();
     private boolean isBlocked = false;
-    private boolean isReadyToPlay = false;
-    private boolean drawFour = false;
-    private boolean drawTwo = false;
     private boolean calledUno = false;
     private boolean canPlay = false;
     private Integer points = 0;
@@ -41,9 +34,11 @@ public class Player implements Serializable {
      *
      * @author Huriel Ferreira Lopes
      * @param players all the match players to be notified
+     * @return returns a message to be displayed to the player that called this 
+     * method
      * @since 1.0
      */
-    public void callUno(List<Player> players) {
+    public String callUno(List<Player> players) {
         if(cards.size() == 1) {
             calledUno = true;
             
@@ -51,12 +46,14 @@ public class Player implements Serializable {
                 PrintStream chat = (PrintStream) player.getOutput();
 
                 if (chat != output) {
-                    chat.println(player.getName() + " chamou Uno!");
+                    chat.println(name + " chamou Uno!");
                 }
             }
         } else {
-            output.println("Voce tem mais que uma carta! Nao pode chamar Uno ainda.");
+            return "Voce tem mais que uma carta! Nao pode chamar Uno ainda.";
         }
+        
+        return "";
     }
     
     /**
@@ -65,9 +62,11 @@ public class Player implements Serializable {
      * @author Huriel Ferreira Lopes
      * @param players the players to receive Counter-Uno call
      * @param deck the deck that may give cards to countered players
+     * @return returns a message to be displayed to the player that called this 
+     * method
      * @since 1.0
      */
-    public void counterUno(List<Player> players, List<Card> deck) {
+    public String counterUno(List<Player> players, List<Card> deck) {
         boolean hasPlayerToCounter = false;
         for (Player currentPlayer : players) {
             if (currentPlayer.getCards().size() == 1 && !currentPlayer.getCalledUno()) {
@@ -78,14 +77,16 @@ public class Player implements Serializable {
 
                     chat.println("Jogador '" + currentPlayer.getName() + "' nao disse Uno e pescou 2 cartas.");
                 }
-
+                
                 hasPlayerToCounter = true;
             }
         }
 
         if (!hasPlayerToCounter) {
-            output.println("Nenhum jogador pode receber seu Contra-Uno.");
+            return "Nenhum jogador pode receber seu Contra-Uno.";
         }
+        
+        return "";
     }
     
     /**
@@ -115,6 +116,7 @@ public class Player implements Serializable {
      * @author Huriel Ferreira Lopes
      * @param deck the deck with receive the dropped card
      * @param card the card to be dropped
+     * @return the card dropped
      * @since 1.0
      */
     public Card dropCard(List<Card> deck, Card card) {
@@ -266,22 +268,6 @@ public class Player implements Serializable {
         this.isBlocked = isBlocked;
     }
 
-    public boolean getDrawFour() {
-        return drawFour;
-    }
-
-    public void setDrawFour(boolean drawFour) {
-        this.drawFour = drawFour;
-    }
-
-    public boolean getDrawTwo() {
-        return drawTwo;
-    }
-
-    public void setDrawTwo(boolean drawTwo) {
-        this.drawTwo = drawTwo;
-    }
-
     public boolean getCalledUno() {
         return calledUno;
     }
@@ -305,14 +291,4 @@ public class Player implements Serializable {
     public void setCanPlay(boolean canPlay) {
         this.canPlay = canPlay;
     }
-
-    public boolean getIsReadyToPlay() {
-        return isReadyToPlay;
-    }
-
-    public void setIsReadyToPlay(boolean isReadyToPlay) {
-        this.isReadyToPlay = isReadyToPlay;
-    }
-    
-    
 }

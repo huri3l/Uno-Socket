@@ -248,7 +248,7 @@ public class SaveData {
      */
     public static void updatePlayerInFile(Player player, int wins, int ties, 
             int losts, int rank, int points) {
-        try {
+        try {            
             String filePath = "players.txt";
             Scanner sc = new Scanner(new File(filePath));
             StringBuilder str = new StringBuilder();
@@ -268,6 +268,8 @@ public class SaveData {
                     + wins + " | Empates: " + ties + " | Derrotas: "
                     + losts + " | Ranking: " + rank
                     + " | Pontuacao na ultima partida: " + points;
+            
+            System.out.println(newLine);
             
             fileContents = fileContents.replace(oldLine, newLine);
             
